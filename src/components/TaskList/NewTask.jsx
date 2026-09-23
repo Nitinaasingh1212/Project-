@@ -12,6 +12,26 @@ const NewTask = ({ data, employeeId, taskIndex }) => {
             const res = await updateTaskStatus(employeeId, taskIndex, 'accept')
             if (res?.localData && setUserData) {
                 setUserData(res.localData)
+            } else if (res?.updatedTasks && setUserData) {
+                setUserData(prev => {
+                    if (!prev) return prev
+                    const target = String(employeeId).trim().toLowerCase()
+                    return prev.map(emp => {
+                        if (
+                            emp.docId?.toLowerCase() === target ||
+                            String(emp.id).toLowerCase() === target ||
+                            emp.firstName?.toLowerCase() === target ||
+                            emp.email?.toLowerCase() === target
+                        ) {
+                            return {
+                                ...emp,
+                                tasks: res.updatedTasks,
+                                taskCounts: res.updatedCounts
+                            }
+                        }
+                        return emp
+                    })
+                })
             }
         } catch (error) {
             console.error("Failed to accept task:", error)

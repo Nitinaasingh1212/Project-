@@ -30,11 +30,13 @@ const App = () => {
   useEffect(() => {
     if (user === 'employee' && loggedInUserData && userData) {
       const updatedEmployee = userData.find(
-        (e) => e.email?.toLowerCase() === loggedInUserData.email?.toLowerCase() ||
-               e.id === loggedInUserData.id
+        (e) => (loggedInUserData.email && e.email?.toLowerCase() === loggedInUserData.email?.toLowerCase()) ||
+               (loggedInUserData.id && String(e.id) === String(loggedInUserData.id)) ||
+               (loggedInUserData.docId && e.docId === loggedInUserData.docId)
       )
       if (updatedEmployee && JSON.stringify(updatedEmployee) !== JSON.stringify(loggedInUserData)) {
         setLoggedInUserData(updatedEmployee)
+        localStorage.setItem('loggedInUser', JSON.stringify({ role: 'employee', data: updatedEmployee }))
       }
     }
   }, [userData, user, loggedInUserData])
@@ -51,13 +53,19 @@ const App = () => {
     }
   }
 
+  const handleLogout = () => {
+    setUser(null)
+    setLoggedInUserData(null)
+    localStorage.removeItem('loggedInUser')
+  }
+
   return (
     <>
       {!user ? <Login handleLogin={handleLogin} /> : null}
       {user === 'admin' ? (
-        <AdminDashboard changeUser={setUser} />
+        <AdminDashboard changeUser={handleLogout} />
       ) : user === 'employee' && loggedInUserData ? (
-        <EmployeeDashboard changeUser={setUser} data={loggedInUserData} />
+        <EmployeeDashboard changeUser={handleLogout} data={loggedInUserData} />
       ) : null}
     </>
   )

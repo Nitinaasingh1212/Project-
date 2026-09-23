@@ -17,7 +17,7 @@ const TaskList = ({ data }) => {
     }
 
     return (
-        <div id='tasklist' className='h-[50%] overflow-x-auto flex items-center justify-start gap-5 flex-nowrap w-full py-1 mt-16'>
+        <div id='tasklist' className='h-[320px] min-h-[300px] overflow-x-auto flex items-center justify-start gap-5 flex-nowrap w-full py-2 mt-12'>
             {data.tasks.map((elem, idx) => {
                 if (elem.active) {
                     return <AcceptTask key={idx} data={elem} employeeId={employeeId} taskIndex={idx} />

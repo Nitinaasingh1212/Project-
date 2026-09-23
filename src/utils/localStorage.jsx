@@ -6,14 +6,14 @@ const employees = [
         "email": "e@e.com",
         "password": "123",
         "taskCounts": {
-            "active": 2,
+            "active": 1,
             "newTask": 1,
             "completed": 1,
             "failed": 0
         },
         "tasks": [
             {
-                "active": true,
+                "active": false,
                 "newTask": true,
                 "completed": false,
                 "failed": false,
@@ -84,14 +84,14 @@ const employees = [
         "email": "employee3@example.com",
         "password": "123",
         "taskCounts": {
-            "active": 2,
+            "active": 1,
             "newTask": 1,
             "completed": 1,
             "failed": 0
         },
         "tasks": [
             {
-                "active": true,
+                "active": false,
                 "newTask": true,
                 "completed": false,
                 "failed": false,
@@ -128,14 +128,14 @@ const employees = [
         "email": "employee4@example.com",
         "password": "123",
         "taskCounts": {
-            "active": 2,
+            "active": 1,
             "newTask": 1,
             "completed": 0,
             "failed": 0
         },
         "tasks": [
             {
-                "active": true,
+                "active": false,
                 "newTask": true,
                 "completed": false,
                 "failed": false,
@@ -162,14 +162,14 @@ const employees = [
         "email": "employee5@example.com",
         "password": "123",
         "taskCounts": {
-            "active": 2,
+            "active": 1,
             "newTask": 1,
             "completed": 1,
             "failed": 0
         },
         "tasks": [
             {
-                "active": true,
+                "active": false,
                 "newTask": true,
                 "completed": false,
                 "failed": false,
@@ -202,7 +202,6 @@ const employees = [
     }
 ];
 
-
 const admin = [{
     "id": 1,
     "email": "admin@example.com",
@@ -212,18 +211,49 @@ const admin = [{
 export const initialEmployees = employees;
 export const initialAdmin = admin;
 
-export const setLocalStorage = ()=>{
+// Recalculate task counts to guarantee accuracy
+export const calculateCounts = (tasks = []) => {
+    return tasks.reduce(
+        (acc, task) => {
+            if (task.active) acc.active += 1;
+            if (task.newTask) acc.newTask += 1;
+            if (task.completed) acc.completed += 1;
+            if (task.failed) acc.failed += 1;
+            return acc;
+        },
+        { active: 0, newTask: 0, completed: 0, failed: 0 }
+    );
+};
+
+export const setLocalStorage = () => {
     if (!localStorage.getItem('employees')) {
-        localStorage.setItem('employees',JSON.stringify(employees))
+        localStorage.setItem('employees', JSON.stringify(employees));
     }
     if (!localStorage.getItem('admin')) {
-        localStorage.setItem('admin',JSON.stringify(admin))
+        localStorage.setItem('admin', JSON.stringify(admin));
     }
-}
-export const getLocalStorage = ()=>{
-    const employees = JSON.parse(localStorage.getItem('employees')) || []
-    const admin = JSON.parse(localStorage.getItem('admin')) || []
+};
 
-    return {employees,admin}
-}
+export const getLocalStorage = () => {
+    try {
+        const storedEmployees = JSON.parse(localStorage.getItem('employees'));
+        const storedAdmin = JSON.parse(localStorage.getItem('admin'));
+
+        if (Array.isArray(storedEmployees) && storedEmployees.length > 0) {
+            // Self-heal and ensure taskCounts are always accurate
+            const normalized = storedEmployees.map((emp) => ({
+                ...emp,
+                taskCounts: calculateCounts(emp.tasks || [])
+            }));
+            return {
+                employees: normalized,
+                admin: storedAdmin || admin
+            };
+        }
+    } catch (e) {
+        console.error("Error reading localStorage:", e);
+    }
+
+    return { employees, admin };
+};
 

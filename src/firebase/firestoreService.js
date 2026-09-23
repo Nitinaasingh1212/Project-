@@ -102,20 +102,30 @@ export const addTaskToEmployee = async (assignToName, taskData) => {
         createdAt: new Date().toISOString()
     };
 
+    const targetSearch = assignToName.trim().toLowerCase();
+
     if (isFirebaseConfigured && db) {
         try {
-            // Find employee by firstName
-            const q = query(
-                collection(db, "employees"),
-                where("firstName", "==", assignToName.trim())
-            );
-            const querySnapshot = await getDocs(q);
+            // Find employee by firstName, email, or id
+            const empSnapshot = await getDocs(collection(db, "employees"));
+            let empDoc = null;
 
-            if (querySnapshot.empty) {
+            empSnapshot.forEach((d) => {
+                const data = d.data();
+                if (
+                    data.firstName?.toLowerCase() === targetSearch ||
+                    data.email?.toLowerCase() === targetSearch ||
+                    d.id === assignToName.trim() ||
+                    String(data.id) === assignToName.trim()
+                ) {
+                    empDoc = d;
+                }
+            });
+
+            if (!empDoc) {
                 throw new Error(`Employee "${assignToName}" not found in database.`);
             }
 
-            const empDoc = querySnapshot.docs[0];
             const currentData = empDoc.data();
             const updatedTasks = [...(currentData.tasks || []), newTask];
             const updatedCounts = calculateTaskCounts(updatedTasks);
@@ -135,7 +145,11 @@ export const addTaskToEmployee = async (assignToName, taskData) => {
         const stored = JSON.parse(localStorage.getItem("employees")) || [];
         let found = false;
         const updated = stored.map((emp) => {
-            if (emp.firstName.toLowerCase() === assignToName.trim().toLowerCase()) {
+            if (
+                emp.firstName?.toLowerCase() === targetSearch ||
+                emp.email?.toLowerCase() === targetSearch ||
+                String(emp.id) === targetSearch
+            ) {
                 found = true;
                 const updatedTasks = [...(emp.tasks || []), newTask];
                 return {
@@ -163,6 +177,8 @@ export const addTaskToEmployee = async (assignToName, taskData) => {
  * @param {'accept' | 'complete' | 'failed'} action - new status
  */
 export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) => {
+    const targetSearch = String(employeeIdentifier).trim().toLowerCase();
+
     if (isFirebaseConfigured && db) {
         try {
             // Locate employee document
@@ -171,9 +187,10 @@ export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) =>
             empSnapshot.forEach((d) => {
                 const data = d.data();
                 if (
-                    d.id === String(employeeIdentifier) ||
-                    String(data.id) === String(employeeIdentifier) ||
-                    data.firstName === employeeIdentifier
+                    d.id.toLowerCase() === targetSearch ||
+                    String(data.id).toLowerCase() === targetSearch ||
+                    data.firstName?.toLowerCase() === targetSearch ||
+                    data.email?.toLowerCase() === targetSearch
                 ) {
                     empDoc = d;
                 }
@@ -227,8 +244,10 @@ export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) =>
         const stored = JSON.parse(localStorage.getItem("employees")) || [];
         const updated = stored.map((emp) => {
             if (
-                String(emp.id) === String(employeeIdentifier) ||
-                emp.firstName === employeeIdentifier
+                String(emp.id).toLowerCase() === targetSearch ||
+                emp.docId?.toLowerCase() === targetSearch ||
+                emp.firstName?.toLowerCase() === targetSearch ||
+                emp.email?.toLowerCase() === targetSearch
             ) {
                 const tasks = [...(emp.tasks || [])];
                 if (tasks[taskIndex]) {
