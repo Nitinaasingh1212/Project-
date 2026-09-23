@@ -5,22 +5,33 @@ import CompleteTask from './CompleteTask'
 import FailedTask from './FailedTask'
 
 const TaskList = ({ data }) => {
+    const employeeId = data.docId || data.id || data.firstName
+
+    if (!data.tasks || data.tasks.length === 0) {
+        return (
+            <div className='mt-16 p-8 text-center text-gray-400 bg-[#1c1c1c] rounded-xl'>
+                <p className='text-lg font-medium'>No tasks assigned yet.</p>
+                <p className='text-sm text-gray-500 mt-1'>Check back later or contact your administrator.</p>
+            </div>
+        )
+    }
+
     return (
         <div id='tasklist' className='h-[50%] overflow-x-auto flex items-center justify-start gap-5 flex-nowrap w-full py-1 mt-16'>
             {data.tasks.map((elem, idx) => {
                 if (elem.active) {
-                    return <AcceptTask key={idx} data={elem} />
+                    return <AcceptTask key={idx} data={elem} employeeId={employeeId} taskIndex={idx} />
                 }
                 if (elem.newTask) {
-                    return <NewTask key={idx} data={elem} />
+                    return <NewTask key={idx} data={elem} employeeId={employeeId} taskIndex={idx} />
                 }
                 if (elem.completed) {
-                    return <CompleteTask key={idx} data={elem} />
+                    return <CompleteTask key={idx} data={elem} employeeId={employeeId} taskIndex={idx} />
                 }
                 if (elem.failed) {
-                    return <FailedTask key={idx} data={elem} />
+                    return <FailedTask key={idx} data={elem} employeeId={employeeId} taskIndex={idx} />
                 }
-
+                return null
             })}
         </div>
     )

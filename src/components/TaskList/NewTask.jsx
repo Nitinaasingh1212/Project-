@@ -1,18 +1,46 @@
-import React from 'react'
+import React, { useState, useContext } from 'react'
+import { updateTaskStatus } from '../../firebase/firestoreService'
+import { AuthContext } from '../../context/AuthProvider'
 
-const NewTask = ({data}) => {
+const NewTask = ({ data, employeeId, taskIndex }) => {
+    const [, setUserData] = useContext(AuthContext)
+    const [loading, setLoading] = useState(false)
+
+    const handleAccept = async () => {
+        setLoading(true)
+        try {
+            const res = await updateTaskStatus(employeeId, taskIndex, 'accept')
+            if (res?.localData && setUserData) {
+                setUserData(res.localData)
+            }
+        } catch (error) {
+            console.error("Failed to accept task:", error)
+            alert("Could not update task. Please try again.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
-        <div className='flex-shrink-0 h-full w-[300px] p-5 bg-green-400 rounded-xl'>
-            <div className='flex justify-between items-center'>
-                <h3 className='bg-red-600 text-sm px-3 py-1 rounded'>{data.category}</h3>
-                <h4 className='text-sm'>{data.taskDate}</h4>
+        <div className='flex-shrink-0 h-full w-[300px] p-5 bg-blue-500 rounded-xl flex flex-col justify-between shadow-lg'>
+            <div>
+                <div className='flex justify-between items-center'>
+                    <h3 className='bg-red-600 text-xs px-3 py-1 rounded font-medium text-white'>{data.category}</h3>
+                    <h4 className='text-xs text-white/90 font-medium'>{data.taskDate}</h4>
+                </div>
+                <h2 className='mt-4 text-xl font-bold text-white line-clamp-2'>{data.taskTitle}</h2>
+                <p className='text-xs text-white/90 mt-2 leading-relaxed'>
+                    {data.taskDescription}
+                </p>
             </div>
-            <h2 className='mt-5 text-2xl font-semibold'>{data.taskTitle}</h2>
-            <p className='text-sm mt-2'>
-                {data.taskDescription}
-            </p>
-            <div className='mt-6'>
-                <button className='bg-blue-500 rounded font-medium py-1 px-2 text-xs'>Accept Task</button>
+            <div className='mt-5'>
+                <button 
+                    onClick={handleAccept}
+                    disabled={loading}
+                    className='w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors text-white font-semibold py-2 px-3 rounded text-xs'
+                >
+                    {loading ? 'Accepting...' : 'Accept Task'}
+                </button>
             </div>
         </div>
     )
