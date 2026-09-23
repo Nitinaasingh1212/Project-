@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
+import { AuthContext } from '../../context/AuthProvider'
+import { deleteTaskFromEmployee, deleteEmployeeProfile } from '../../firebase/firestoreService'
 
 const EmployeeWorkModal = ({ employee, onClose }) => {
+    const [, setUserData] = useContext(AuthContext)
     const [filter, setFilter] = useState('all')
+    const [deletingTaskIndex, setDeletingTaskIndex] = useState(null)
+    const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
 
     // Close on Escape key press
     useEffect(() => {
@@ -14,6 +19,7 @@ const EmployeeWorkModal = ({ employee, onClose }) => {
 
     if (!employee) return null
 
+    const employeeId = employee.docId || employee.id || employee.firstName
     const tasks = employee.tasks || []
     const counts = employee.taskCounts || {
         active: 0,
@@ -22,13 +28,83 @@ const EmployeeWorkModal = ({ employee, onClose }) => {
         failed: 0
     }
 
-    const filteredTasks = tasks.filter((task) => {
+    const tasksWithIndex = tasks.map((task, originalIndex) => ({ task, originalIndex }))
+
+    const filteredTasks = tasksWithIndex.filter(({ task }) => {
         if (filter === 'active') return task.active
         if (filter === 'newTask') return task.newTask
         if (filter === 'completed') return task.completed
         if (filter === 'failed') return task.failed
         return true
     })
+
+    const handleDeleteTask = async (originalIndex, taskTitle) => {
+        if (!window.confirm(`Are you sure you want to delete the task: "${taskTitle}"?`)) {
+            return
+        }
+        setDeletingTaskIndex(originalIndex)
+        try {
+            const res = await deleteTaskFromEmployee(employeeId, originalIndex)
+            if (res?.localData && setUserData) {
+                setUserData(res.localData)
+            } else if (res?.updatedTasks && setUserData) {
+                setUserData(prev => {
+                    if (!prev) return prev
+                    const target = String(employeeId).trim().toLowerCase()
+                    return prev.map(emp => {
+                        if (
+                            emp.docId?.toLowerCase() === target ||
+                            String(emp.id).toLowerCase() === target ||
+                            emp.firstName?.toLowerCase() === target ||
+                            emp.email?.toLowerCase() === target
+                        ) {
+                            return {
+                                ...emp,
+                                tasks: res.updatedTasks,
+                                taskCounts: res.updatedCounts
+                            }
+                        }
+                        return emp
+                    })
+                })
+            }
+        } catch (err) {
+            console.error("Failed to delete task:", err)
+            alert("Failed to delete task. Please try again.")
+        } finally {
+            setDeletingTaskIndex(null)
+        }
+    }
+
+    const handleDeleteEmployee = async () => {
+        if (!window.confirm(`Are you sure you want to permanently delete profile for "${employee.firstName}"? This action cannot be undone.`)) {
+            return
+        }
+        setIsDeletingEmployee(true)
+        try {
+            const res = await deleteEmployeeProfile(employeeId)
+            if (res?.localData && setUserData) {
+                setUserData(res.localData)
+            } else if (setUserData) {
+                setUserData(prev => {
+                    if (!prev) return prev
+                    const target = String(employeeId).trim().toLowerCase()
+                    return prev.filter(emp => !(
+                        emp.docId?.toLowerCase() === target ||
+                        String(emp.id).toLowerCase() === target ||
+                        emp.firstName?.toLowerCase() === target ||
+                        emp.email?.toLowerCase() === target
+                    ))
+                })
+            }
+            onClose()
+        } catch (err) {
+            console.error("Failed to delete employee profile:", err)
+            alert("Failed to delete profile.")
+        } finally {
+            setIsDeletingEmployee(false)
+        }
+    }
 
     const getStatusBadge = (task) => {
         if (task.completed) {
@@ -99,13 +175,24 @@ const EmployeeWorkModal = ({ employee, onClose }) => {
                             </p>
                         </div>
                     </div>
-                    <button 
-                        onClick={onClose}
-                        className='w-9 h-9 rounded-full bg-gray-800/80 hover:bg-red-600 hover:text-white transition-colors text-gray-400 flex items-center justify-center text-lg'
-                        title="Close (Esc)"
-                    >
-                        ✕
-                    </button>
+                    <div className='flex items-center gap-2'>
+                        <button
+                            onClick={handleDeleteEmployee}
+                            disabled={isDeletingEmployee}
+                            className='px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800/60 text-rose-400 hover:text-white text-xs font-semibold transition-colors flex items-center gap-1'
+                            title="Permanently delete employee profile"
+                        >
+                            <span>🗑</span>
+                            <span>{isDeletingEmployee ? 'Deleting...' : 'Delete Profile'}</span>
+                        </button>
+                        <button 
+                            onClick={onClose}
+                            className='w-9 h-9 rounded-full bg-gray-800/80 hover:bg-red-600 hover:text-white transition-colors text-gray-400 flex items-center justify-center text-lg'
+                            title="Close (Esc)"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
 
                 {/* Status Counters Strip */}
@@ -164,9 +251,9 @@ const EmployeeWorkModal = ({ employee, onClose }) => {
                 <div className='flex-1 overflow-y-auto p-6 space-y-4'>
                     {filteredTasks.length > 0 ? (
                         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                            {filteredTasks.map((task, idx) => (
+                            {filteredTasks.map(({ task, originalIndex }) => (
                                 <div 
-                                    key={idx}
+                                    key={originalIndex}
                                     className='bg-[#212121] border border-gray-700/50 hover:border-gray-600 rounded-xl p-5 flex flex-col justify-between transition-all hover:shadow-lg'
                                 >
                                     <div>
@@ -185,11 +272,22 @@ const EmployeeWorkModal = ({ employee, onClose }) => {
                                             {task.taskDescription || 'No description provided.'}
                                         </p>
                                     </div>
-                                    <div className='mt-4 pt-3 border-t border-gray-800 flex items-center justify-between'>
-                                        <span className='text-[11px] text-gray-400'>
-                                            Status:
-                                        </span>
-                                        {getStatusBadge(task)}
+                                    <div className='mt-4 pt-3 border-t border-gray-800 flex items-center justify-between gap-2'>
+                                        <div className='flex items-center gap-1.5'>
+                                            <span className='text-[11px] text-gray-400'>
+                                                Status:
+                                            </span>
+                                            {getStatusBadge(task)}
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteTask(originalIndex, task.taskTitle)}
+                                            disabled={deletingTaskIndex === originalIndex}
+                                            className='text-xs px-2.5 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50'
+                                            title={`Delete task "${task.taskTitle}"`}
+                                        >
+                                            <span>🗑</span>
+                                            <span>{deletingTaskIndex === originalIndex ? 'Deleting...' : 'Delete Task'}</span>
+                                        </button>
                                     </div>
                                 </div>
                             ))}

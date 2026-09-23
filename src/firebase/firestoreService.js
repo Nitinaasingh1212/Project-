@@ -4,6 +4,7 @@ import {
     getDocs,
     setDoc,
     updateDoc,
+    deleteDoc,
     onSnapshot,
     query,
     where
@@ -349,4 +350,207 @@ export const authenticateCredentials = async (email, password, fallbackData) => 
     }
 
     return null;
+};
+
+/**
+ * Add a new employee profile
+ * @param {Object} employeeData - { firstName, email, password }
+ */
+export const addEmployeeProfile = async (employeeData) => {
+    const cleanFirstName = employeeData.firstName.trim();
+    const cleanEmail = employeeData.email.trim().toLowerCase();
+    const cleanPassword = employeeData.password.trim();
+
+    if (!cleanFirstName || !cleanEmail || !cleanPassword) {
+        throw new Error("First name, email, and password are all required.");
+    }
+
+    const newEmp = {
+        id: Date.now(),
+        firstName: cleanFirstName,
+        email: cleanEmail,
+        password: cleanPassword,
+        tasks: [],
+        taskCounts: {
+            active: 0,
+            newTask: 0,
+            completed: 0,
+            failed: 0
+        }
+    };
+
+    if (isFirebaseConfigured && db) {
+        try {
+            // Verify if email already registered
+            const empSnapshot = await getDocs(collection(db, "employees"));
+            let exists = false;
+            empSnapshot.forEach((d) => {
+                if (d.data().email?.toLowerCase() === cleanEmail) {
+                    exists = true;
+                }
+            });
+
+            if (exists) {
+                throw new Error(`An employee with email "${cleanEmail}" already exists.`);
+            }
+
+            const docRef = doc(db, "employees", String(newEmp.id));
+            await setDoc(docRef, newEmp);
+
+            return {
+                success: true,
+                employee: { docId: docRef.id, ...newEmp }
+            };
+        } catch (error) {
+            console.error("Error creating employee in Firestore:", error);
+            throw error;
+        }
+    } else {
+        // Fallback to localStorage
+        const stored = JSON.parse(localStorage.getItem("employees")) || [];
+        if (stored.some((e) => e.email?.toLowerCase() === cleanEmail)) {
+            throw new Error(`An employee with email "${cleanEmail}" already exists.`);
+        }
+
+        const updated = [...stored, newEmp];
+        localStorage.setItem("employees", JSON.stringify(updated));
+        return { success: true, employee: newEmp, localData: updated };
+    }
+};
+
+/**
+ * Delete an assigned task from an employee
+ * @param {string|number} employeeIdentifier - employee id, docId, or email
+ * @param {number} taskIndex - index of task to remove
+ */
+export const deleteTaskFromEmployee = async (employeeIdentifier, taskIndex) => {
+    const targetSearch = String(employeeIdentifier).trim().toLowerCase();
+
+    if (isFirebaseConfigured && db) {
+        try {
+            let empDoc = null;
+            const empSnapshot = await getDocs(collection(db, "employees"));
+            empSnapshot.forEach((d) => {
+                const data = d.data();
+                if (
+                    d.id.toLowerCase() === targetSearch ||
+                    String(data.id).toLowerCase() === targetSearch ||
+                    data.firstName?.toLowerCase() === targetSearch ||
+                    data.email?.toLowerCase() === targetSearch
+                ) {
+                    empDoc = d;
+                }
+            });
+
+            if (!empDoc) {
+                throw new Error(`Employee not found: ${employeeIdentifier}`);
+            }
+
+            const empData = empDoc.data();
+            const tasks = [...(empData.tasks || [])];
+
+            if (taskIndex < 0 || taskIndex >= tasks.length) {
+                throw new Error(`Task at index ${taskIndex} not found.`);
+            }
+
+            // Remove task
+            tasks.splice(taskIndex, 1);
+            const taskCounts = calculateTaskCounts(tasks);
+
+            await updateDoc(doc(db, "employees", empDoc.id), {
+                tasks,
+                taskCounts
+            });
+
+            return { success: true, updatedTasks: tasks, updatedCounts: taskCounts };
+        } catch (error) {
+            console.error("Error deleting task in Firestore:", error);
+            throw error;
+        }
+    } else {
+        // Fallback to localStorage
+        const stored = JSON.parse(localStorage.getItem("employees")) || [];
+        let updatedTasksList = [];
+        let updatedCountsList = { active: 0, newTask: 0, completed: 0, failed: 0 };
+
+        const updated = stored.map((emp) => {
+            if (
+                String(emp.id).toLowerCase() === targetSearch ||
+                emp.docId?.toLowerCase() === targetSearch ||
+                emp.firstName?.toLowerCase() === targetSearch ||
+                emp.email?.toLowerCase() === targetSearch
+            ) {
+                const tasks = [...(emp.tasks || [])];
+                if (taskIndex >= 0 && taskIndex < tasks.length) {
+                    tasks.splice(taskIndex, 1);
+                    const taskCounts = calculateTaskCounts(tasks);
+                    updatedTasksList = tasks;
+                    updatedCountsList = taskCounts;
+                    return {
+                        ...emp,
+                        tasks,
+                        taskCounts
+                    };
+                }
+            }
+            return emp;
+        });
+
+        localStorage.setItem("employees", JSON.stringify(updated));
+        return {
+            success: true,
+            updatedTasks: updatedTasksList,
+            updatedCounts: updatedCountsList,
+            localData: updated
+        };
+    }
+};
+
+/**
+ * Delete an employee profile entirely
+ * @param {string|number} employeeIdentifier
+ */
+export const deleteEmployeeProfile = async (employeeIdentifier) => {
+    const targetSearch = String(employeeIdentifier).trim().toLowerCase();
+
+    if (isFirebaseConfigured && db) {
+        try {
+            let empDoc = null;
+            const empSnapshot = await getDocs(collection(db, "employees"));
+            empSnapshot.forEach((d) => {
+                const data = d.data();
+                if (
+                    d.id.toLowerCase() === targetSearch ||
+                    String(data.id).toLowerCase() === targetSearch ||
+                    data.firstName?.toLowerCase() === targetSearch ||
+                    data.email?.toLowerCase() === targetSearch
+                ) {
+                    empDoc = d;
+                }
+            });
+
+            if (!empDoc) {
+                throw new Error(`Employee not found: ${employeeIdentifier}`);
+            }
+
+            await deleteDoc(doc(db, "employees", empDoc.id));
+            return { success: true, deletedId: empDoc.id };
+        } catch (error) {
+            console.error("Error deleting employee from Firestore:", error);
+            throw error;
+        }
+    } else {
+        const stored = JSON.parse(localStorage.getItem("employees")) || [];
+        const updated = stored.filter((emp) => {
+            return !(
+                String(emp.id).toLowerCase() === targetSearch ||
+                emp.docId?.toLowerCase() === targetSearch ||
+                emp.firstName?.toLowerCase() === targetSearch ||
+                emp.email?.toLowerCase() === targetSearch
+            );
+        });
+
+        localStorage.setItem("employees", JSON.stringify(updated));
+        return { success: true, localData: updated };
+    }
 };

@@ -1,10 +1,12 @@
 import React, { useContext, useState } from 'react'
 import { AuthContext } from '../../context/AuthProvider'
 import EmployeeWorkModal from './EmployeeWorkModal'
+import CreateEmployeeModal from './CreateEmployeeModal'
 
 const AllTask = () => {
     const [userData] = useContext(AuthContext)
     const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
+    const [showCreateEmployeeModal, setShowCreateEmployeeModal] = useState(false)
 
     // Keep selected employee data fresh if real-time Firestore updates arrive
     const selectedEmployee = userData?.find(
@@ -15,11 +17,20 @@ const AllTask = () => {
 
     return (
         <div className='bg-[#1c1c1c] p-5 rounded mt-5'>
-            <div className='flex items-center justify-between mb-3'>
-                <h2 className='text-lg font-semibold text-white'>Employee Task Overview</h2>
-                <span className='text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full'>
-                    💡 Click on any employee to view their full work
-                </span>
+            <div className='flex items-center justify-between mb-4 flex-wrap gap-3'>
+                <div className='flex items-center gap-3'>
+                    <h2 className='text-lg font-semibold text-white'>Employee Task Overview</h2>
+                    <span className='text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full'>
+                        💡 Click any employee to view & delete assigned tasks
+                    </span>
+                </div>
+                <button
+                    onClick={() => setShowCreateEmployeeModal(true)}
+                    className='px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-950 flex items-center gap-1.5'
+                >
+                    <span>➕</span>
+                    <span>Add New Employee</span>
+                </button>
             </div>
 
             <div className='bg-emerald-800 mb-3 py-2.5 px-4 flex justify-between items-center rounded text-white text-sm font-semibold'>
@@ -81,6 +92,13 @@ const AllTask = () => {
                 <EmployeeWorkModal 
                     employee={selectedEmployee} 
                     onClose={() => setSelectedEmployeeId(null)} 
+                />
+            )}
+
+            {/* Modal to register a new employee */}
+            {showCreateEmployeeModal && (
+                <CreateEmployeeModal 
+                    onClose={() => setShowCreateEmployeeModal(false)} 
                 />
             )}
         </div>

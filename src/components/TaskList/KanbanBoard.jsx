@@ -188,11 +188,10 @@ const KanbanBoard = ({ data }) => {
                             onDragOver={(e) => handleDragOver(e, column.id)}
                             onDragLeave={(e) => handleDragLeave(e, column.id)}
                             onDrop={(e) => handleDrop(e, column)}
-                            className={`flex flex-col rounded-2xl bg-[#161616] border-2 transition-all duration-200 min-h-[460px] max-h-[75vh] p-3.5 shadow-xl ${
-                                isOver
+                            className={`flex flex-col rounded-2xl bg-[#161616] border-2 transition-all duration-200 min-h-[460px] max-h-[75vh] p-3.5 shadow-xl ${isOver
                                     ? `${column.glowBorder} scale-[1.01] shadow-2xl shadow-emerald-950/30`
                                     : 'border-gray-800/80 hover:border-gray-700'
-                            }`}
+                                }`}
                         >
                             {/* Column Header */}
                             <div className={`p-3 rounded-xl bg-gradient-to-r ${column.headerBg} border flex items-center justify-between mb-3.5`}>
@@ -225,11 +224,10 @@ const KanbanBoard = ({ data }) => {
                                                 draggable={!isBeingUpdated}
                                                 onDragStart={(e) => handleDragStart(e, originalIndex, column.id, task.taskTitle)}
                                                 onDragEnd={handleDragEnd}
-                                                className={`group p-4 rounded-xl border bg-[#1f1f1f] transition-all cursor-grab active:cursor-grabbing select-none ${
-                                                    isBeingDragged
+                                                className={`group p-4 rounded-xl border bg-[#1f1f1f] transition-all cursor-grab active:cursor-grabbing select-none ${isBeingDragged
                                                         ? 'opacity-40 border-dashed border-gray-500 scale-95'
                                                         : 'border-gray-700/60 hover:border-gray-500 hover:shadow-lg hover:-translate-y-0.5'
-                                                } ${isBeingUpdated ? 'pointer-events-none opacity-60' : ''}`}
+                                                    } ${isBeingUpdated ? 'pointer-events-none opacity-60' : ''}`}
                                             >
                                                 {/* Card Header */}
                                                 <div className='flex items-center justify-between gap-2 mb-2'>
