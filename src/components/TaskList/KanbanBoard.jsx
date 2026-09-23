@@ -178,27 +178,8 @@ const KanbanBoard = ({ data }) => {
                 </div>
             )}
 
-            {/* Kanban Header with instruction */}
-            <div className='flex flex-wrap items-center justify-between gap-3 mb-5'>
-                <div>
-                    <h2 className='text-xl font-bold text-white flex items-center gap-2'>
-                        <span>📋</span>
-                        <span>Drag & Drop Task Workflow</span>
-                    </h2>
-                    <p className='text-xs text-gray-400 mt-0.5'>
-                        Drag any task card and drop it into another column (e.g. drop into <strong>Completed</strong> to finish it).
-                    </p>
-                </div>
-                <div className='flex items-center gap-2'>
-                    <span className='inline-flex items-center gap-1.5 text-xs bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 px-3 py-1.5 rounded-full'>
-                        <span className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse'></span>
-                        Interactive Drop Zones Active
-                    </span>
-                </div>
-            </div>
-
             {/* Kanban Columns Grid */}
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-start'>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-start mt-8'>
                 {columns.map((column) => {
                     const isOver = dragOverColumn === column.id
                     return (
