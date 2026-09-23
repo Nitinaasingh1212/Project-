@@ -209,12 +209,12 @@ export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) =>
 
             const target = { ...tasks[taskIndex] };
 
-            if (action === "accept") {
+            if (action === "accept" || action === "active") {
                 target.active = true;
                 target.newTask = false;
                 target.completed = false;
                 target.failed = false;
-            } else if (action === "complete") {
+            } else if (action === "complete" || action === "completed") {
                 target.active = false;
                 target.newTask = false;
                 target.completed = true;
@@ -224,6 +224,11 @@ export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) =>
                 target.newTask = false;
                 target.completed = false;
                 target.failed = true;
+            } else if (action === "new" || action === "reset") {
+                target.active = false;
+                target.newTask = true;
+                target.completed = false;
+                target.failed = false;
             }
 
             tasks[taskIndex] = target;
@@ -252,12 +257,12 @@ export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) =>
                 const tasks = [...(emp.tasks || [])];
                 if (tasks[taskIndex]) {
                     const target = { ...tasks[taskIndex] };
-                    if (action === "accept") {
+                    if (action === "accept" || action === "active") {
                         target.active = true;
                         target.newTask = false;
                         target.completed = false;
                         target.failed = false;
-                    } else if (action === "complete") {
+                    } else if (action === "complete" || action === "completed") {
                         target.active = false;
                         target.newTask = false;
                         target.completed = true;
@@ -267,6 +272,11 @@ export const updateTaskStatus = async (employeeIdentifier, taskIndex, action) =>
                         target.newTask = false;
                         target.completed = false;
                         target.failed = true;
+                    } else if (action === "new" || action === "reset") {
+                        target.active = false;
+                        target.newTask = true;
+                        target.completed = false;
+                        target.failed = false;
                     }
                     tasks[taskIndex] = target;
                     return {
